@@ -1,0 +1,37 @@
+/* ────────────────────────────────────────────────────────────────────────────
+   DriftEngine component layer
+   Kept minimal — prefer inline Tailwind utilities in JSX.
+   Only truly shared, non-trivial patterns live here.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+@layer components {
+
+  /* Dot-grid background used on the landing page */
+  .de-grid-bg {
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+
+  /* Fan chart SVG fill classes */
+  .fan-50     { fill: rgba(255, 107, 43, 0.12); }
+  .fan-90     { fill: rgba(255, 255, 255, 0.025); }
+  .fan-median { stroke: var(--de-orange); stroke-width: 2px; fill: none; }
+
+  /* Thin scrollbar for sidebar / overflow containers */
+  .thin-scrollbar::-webkit-scrollbar       { width: 3px; }
+  .thin-scrollbar::-webkit-scrollbar-track { background: transparent; }
+  .thin-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 99px;
+  }
+
+  /* Orange focus glow — applied to search/input wrappers */
+  .focus-glow:focus-within {
+    border-color: rgba(255, 107, 43, 0.4);
+    box-shadow:
+      0 0 0 1px rgba(255, 107, 43, 0.15),
+      0 20px 60px rgba(0, 0, 0, 0.55);
+  }
+}
