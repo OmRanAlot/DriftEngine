@@ -4,10 +4,8 @@ import numpy as np
 import yfinance as yf
 import dotenv
 dotenv.load_dotenv()
-from supabase import create_client
 from datetime import timezone
-
-supabase = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_SECRET_KEY"))
+from services.supabase_helpers import upsert_records, _get_client
 
 def _get_table(interval: str) -> str:
     match interval:
@@ -76,8 +74,7 @@ def fetch_data(ticker: str, interval: str = "1d") -> pd.DataFrame:
 
         if records:
             print(f"[{ticker}] Upserting {len(records)} new {interval} rows to DB...")
-            supabase.table(table).upsert(records).execute()
-            print(f"[{ticker}] Upsert complete.")
+            upsert_records(table, records)
 
     return _load_from_db(ticker, interval)
 
@@ -86,7 +83,7 @@ def _load_from_db(ticker: str, interval: str) -> pd.DataFrame:
     print(f"[{ticker}] Loading final {interval} dataset from DB...")
     table = _get_table(interval)
     res = (
-        supabase.table(table)
+        _get_client().table(table)
         .select("*")
         .eq("ticker", ticker)
         .order("timestamp")
@@ -104,7 +101,7 @@ def get_existing_timestamps(ticker: str, interval: str) -> set:
     print(f"[{ticker}] Checking DB for existing {interval} timestamps...")
     table = _get_table(interval) 
     res = (
-        supabase.table(table)
+        _get_client().table(table)
         .select("timestamp")
         .eq("ticker", ticker)
         .execute()
