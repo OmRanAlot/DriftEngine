@@ -12,7 +12,7 @@ import logging
 import pandas as pd
 import numpy as np
 from scipy import stats
-from services.supabase_helpers import (
+from supabase_helpers import (
     get_from_supabase,
     get_ta_from_supabase,
     push_regime_columns_to_supabase,

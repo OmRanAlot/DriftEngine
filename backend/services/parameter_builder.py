@@ -55,6 +55,9 @@ def build_params(regime_params: list[dict],
                 horizon_days: int, 
                 num_paths: int = NUM_PATHS_DEFAULT, 
                 dt: float = DT) -> dict:
+    
+   
+    
     return {
         "S0": S0,
         "current_regime": current_regime,
@@ -62,4 +65,30 @@ def build_params(regime_params: list[dict],
         "num_paths": num_paths,
         "num_steps": horizon_days,
         "dt": dt,
+        "regimes": regime_params,
     }
+
+
+if __name__ == "__main__":
+    from regime_classifier import compute_regime_params, add_derived_features, calibrate_thresholds, classify_regimes, build_transition_matrix, get_current_regime, classify_and_prepare
+    import pandas as pd
+    import numpy as np
+    from supabase_helpers import get_from_supabase, get_ta_from_supabase
+    import json
+    import os
+    df = get_from_supabase(ticker="AAPL", interval="daily")
+    ta = get_ta_from_supabase(interval="daily", ticker="AAPL")
+    df = pd.merge(df, ta, left_on="id", right_on="stock_daily_id", how="left")
+    df = add_derived_features(df, lookback=20)
+    thresholds = calibrate_thresholds(df)
+    regimes = classify_regimes(df, thresholds=thresholds)
+    regime_params = compute_regime_params(df, regimes)
+    transition_matrix = build_transition_matrix(regimes)
+    info = build_params(regime_params, transition_matrix, get_current_regime(regimes), df["close"].iloc[0], 30) #type: ignore
+    print(info)
+    with open("params.json", "w") as f:
+        json.dump(info, f)
+    #first regimes is regime 0: Low-Volatility Bull
+    #second regimes is regime 1: High-Volatility Bull
+    #third regimes is regime 2: Low-Volatility Bear
+    #fourth regimes is regime 3: High-Volatility Bear

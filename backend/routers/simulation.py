@@ -28,6 +28,7 @@ from services.regime_classifier import (
     compute_regime_params,
     get_current_regime,
 )
+from services.parameter_builder import build_params
 
 logger = logging.getLogger(__name__)
 
@@ -38,11 +39,11 @@ router = APIRouter()
 async def simulate(request: SimulationRequest):
     ticker = request.ticker.upper().strip()
     horizon_days = request.horizon_days
-
+    interval = request.interval
     # ── Step 1: Ensure OHLCV + log_return are in Supabase ────────────────────
     logger.info("[%s] Step 1 — fetching price data.", ticker)
     try:
-        price_df = fetch_data(ticker, "1d")
+        price_df = fetch_data(ticker, interval)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
     except Exception as exc:
@@ -54,7 +55,7 @@ async def simulate(request: SimulationRequest):
     # ── Step 2: Ensure TA columns are in Supabase ────────────────────────────
     logger.info("[%s] Step 2 — fetching / computing technical indicators.", ticker)
     try:
-        ta_df = fetch_or_compute_indicators(ticker, "daily")
+        ta_df = fetch_or_compute_indicators(ticker, interval)
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"Failed to compute indicators: {exc}")
 
@@ -77,7 +78,7 @@ async def simulate(request: SimulationRequest):
     try:
         work_df, regimes = classify_and_prepare(
             merged,
-            interval="daily",
+            interval=interval,
             ticker=ticker,
             use_supabase_cache=True,
             push_regimes=True,
@@ -96,6 +97,8 @@ async def simulate(request: SimulationRequest):
         "[%s] Regime backfill complete. current_regime=%d, %d historical days classified.",
         ticker, current_regime, len(regimes),
     )
+
+    params = build_params(regime_params, transition_matrix, current_regime, work_df["close"].iloc[0], horizon_days)
 
     # ── Steps 6–8: Monte Carlo simulation (not yet implemented) ──────────────
     # TODO: call parameter_builder.build_params() → C++ engine → results_aggregator.aggregate()

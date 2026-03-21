@@ -6,7 +6,7 @@
 # TODO: Implement all models below
 
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import List, Optional, Literal
 
 
 # ─── Request ───────────────────────────────────────────────────────────────
@@ -14,7 +14,7 @@ from typing import List, Optional
 class SimulationRequest(BaseModel):
     ticker: str = Field(..., min_length=1, max_length=5, description="Stock ticker symbol")
     horizon_days: int = Field(..., ge=1, le=252, description="Forecast horizon in trading days")
-
+    interval: Literal["daily", "hourly", "minutely"] = Field(..., description="Interval of the data")
 
 # ─── Sub-models ────────────────────────────────────────────────────────────
 
