@@ -29,4 +29,5 @@ struct SimulationResults {
 
     std::vector<double> terminal_prices;
     std::vector<double> max_drawdowns;
+    std::vector<double> price_matrix;
 };
