@@ -46,3 +46,20 @@ import numpy as np
 
 NUM_PATHS_DEFAULT = 10_000
 DT = 1 / 252
+
+
+def build_params(regime_params: list[dict], 
+                transition_matrix: list[list[float]], 
+                current_regime: int, 
+                S0: float, 
+                horizon_days: int, 
+                num_paths: int = NUM_PATHS_DEFAULT, 
+                dt: float = DT) -> dict:
+    return {
+        "S0": S0,
+        "current_regime": current_regime,
+        "transition_matrix": transition_matrix,
+        "num_paths": num_paths,
+        "num_steps": horizon_days,
+        "dt": dt,
+    }

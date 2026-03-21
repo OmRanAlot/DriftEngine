@@ -36,3 +36,9 @@ app.include_router(simulation.router)
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
+
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="localhost", port=8000, reload=True)
