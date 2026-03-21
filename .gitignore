@@ -4,3 +4,5 @@ screens_ref
 assests
 .env
 __pycache__
+
+simulation/build/*
