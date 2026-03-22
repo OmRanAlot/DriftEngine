@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python services/test.py)",
+      "Bash(python:*)",
+      "Bash(where python:*)",
+      "Bash(PATH=\"C:/mingw64/bin:$PATH\" python -c \"\nimport os, sys\nos.add_dll_directory\\('C:/mingw64/bin'\\)\nsys.path.insert\\(0, 'C:/Users/omran/code/DriftEngine/simulation/build'\\)\nimport drift_engine_sim\nprint\\('Import OK:', drift_engine_sim\\)\n\" 2>&1)"
+    ]
+  }
+}

@@ -18,9 +18,11 @@ def _get_client() -> Client:
     global _client
     if _client is None:
         url = os.getenv("SUPABASE_URL")
-        key = os.getenv("SUPABASE_SECRET_KEY") or os.getenv("SUPABASE_KEY")
+        # SUPABASE_KEY holds the JWT anon/service-role token required by supabase-py.
+        # SUPABASE_SECRET_KEY is the newer sb_secret_* Management API key — NOT a valid JWT for the Data API.
+        key = os.getenv("SUPABASE_KEY") or os.getenv("SUPABASE_SECRET_KEY")
         if not url or not key:
-            raise EnvironmentError("SUPABASE_URL and SUPABASE_SECRET_KEY (or SUPABASE_KEY) must be set.")
+            raise EnvironmentError("SUPABASE_URL and SUPABASE_KEY must be set in .env.")
         _client = create_client(url, key)
     return _client
 

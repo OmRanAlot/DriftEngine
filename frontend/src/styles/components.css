@@ -15,9 +15,11 @@
   }
 
   /* Fan chart SVG fill classes */
-  .fan-50     { fill: rgba(255, 107, 43, 0.12); }
-  .fan-90     { fill: rgba(255, 255, 255, 0.025); }
-  .fan-median { stroke: var(--de-orange); stroke-width: 2px; fill: none; }
+  .fan-90     { fill: rgba(99, 102, 241, 0.18); }
+  .fan-50     { fill: rgba(139, 92, 246, 0.32); }
+  .fan-median { stroke: #ffffff; stroke-width: 2.5px; fill: none; }
+  .fan-p95    { stroke: rgba(74, 222, 128, 0.75); stroke-width: 1.5px; stroke-dasharray: 8 4; fill: none; }
+  .fan-p5     { stroke: rgba(248, 113, 113, 0.75); stroke-width: 1.5px; stroke-dasharray: 8 4; fill: none; }
 
   /* Thin scrollbar for sidebar / overflow containers */
   .thin-scrollbar::-webkit-scrollbar       { width: 3px; }
@@ -27,11 +29,147 @@
     border-radius: 99px;
   }
 
-  /* Orange focus glow — applied to search/input wrappers */
+  /* Staggered entry animation for dashboard sections */
+  .de-fade-in {
+    animation: de-fade-in-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  @keyframes de-fade-in-up {
+    from {
+      opacity: 0;
+      transform: translateY(24px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Header slide-down */
+  .de-slide-down {
+    animation: de-slide-down 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  @keyframes de-slide-down {
+    from {
+      opacity: 0;
+      transform: translateY(-100%);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Fan chart SVG draw-in */
+  .de-draw-in path, .de-draw-in circle {
+    animation: de-svg-fade 1s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation-delay: 0.6s;
+  }
+
+  .de-draw-in .fan-90   { animation-delay: 0.5s; }
+  .de-draw-in .fan-50   { animation-delay: 0.65s; }
+  .de-draw-in .fan-p95  { animation-delay: 0.55s; }
+  .de-draw-in .fan-p5   { animation-delay: 0.55s; }
+  .de-draw-in .fan-median {
+    stroke-dasharray: 1500;
+    stroke-dashoffset: 1500;
+    animation: de-line-draw 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation-delay: 0.7s;
+  }
+
+  @keyframes de-svg-fade {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  @keyframes de-line-draw {
+    from {
+      stroke-dashoffset: 1500;
+      opacity: 0;
+    }
+    10% {
+      opacity: 1;
+    }
+    to {
+      stroke-dashoffset: 0;
+      opacity: 1;
+    }
+  }
+
+  /* Histogram bars grow up */
+  .de-bar-grow {
+    animation: de-bar-grow 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+    transform-origin: bottom;
+  }
+
+  @keyframes de-bar-grow {
+    from {
+      transform: scaleY(0);
+      opacity: 0;
+    }
+    to {
+      transform: scaleY(1);
+      opacity: 1;
+    }
+  }
+
+  /* Counter number pop */
+  .de-pop {
+    animation: de-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+
+  @keyframes de-pop {
+    from {
+      opacity: 0;
+      transform: scale(0.6);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  /* Trials slider */
+  .de-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 3px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.12);
+    outline: none;
+    cursor: pointer;
+  }
+  .de-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 0 8px rgba(255, 255, 255, 0.25);
+    cursor: pointer;
+    transition: box-shadow 0.15s ease, transform 0.15s ease;
+  }
+  .de-slider::-webkit-slider-thumb:hover {
+    box-shadow: 0 0 14px rgba(255, 255, 255, 0.45);
+    transform: scale(1.15);
+  }
+  .de-slider::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    cursor: pointer;
+  }
+
+  /* White focus glow — applied to search/input wrappers */
   .focus-glow:focus-within {
-    border-color: rgba(255, 107, 43, 0.4);
+    border-color: rgba(255, 255, 255, 0.25);
     box-shadow:
-      0 0 0 1px rgba(255, 107, 43, 0.15),
+      0 0 0 1px rgba(255, 255, 255, 0.08),
       0 20px 60px rgba(0, 0, 0, 0.55);
   }
 }

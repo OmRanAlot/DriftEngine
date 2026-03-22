@@ -72,7 +72,7 @@ export default function RiskDashboard({ metrics }) {
           label="Expected Shortfall"
           value="—"
           description="Avg loss in worst 5% of paths"
-          color="#fb923c"
+          color="#f87171"
         />
       </div>
     </div>

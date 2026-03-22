@@ -42,7 +42,7 @@ const REGIME_NAMES = [
   'Sideways'
 ]
 
-const REGIME_COLORS = ['#22c55e', '#eab308', '#ef4444', '#3b82f6']
+const REGIME_COLORS = ['#22c55e', '#ffffff', '#ef4444', '#ffffff']
 
 export default function RegimePanel({ regime, transitionMatrix }) {
   // TODO: render regime badge, indicator table, and transition matrix

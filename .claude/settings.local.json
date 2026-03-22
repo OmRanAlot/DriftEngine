@@ -1,7 +1,12 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(rm \"C:\\\\Users\\\\omran\\\\.claude\\\\projects\\\\C--Users-omran-code-DriftEngine\\\\memory\\\\feedback_no_code_writing.md\")",
+      "Bash(rm \"/c/Users/omran/.claude/projects/C--Users-omran-code-DriftEngine/memory/feedback_no_code_writing.md\")",
+      "Bash(npx vite:*)",
+      "Bash(cmake .. -G \"MinGW Makefiles\" -DCMAKE_BUILD_TYPE=Release)",
+      "Bash(cmake --build . --config Release)"
     ]
   }
 }

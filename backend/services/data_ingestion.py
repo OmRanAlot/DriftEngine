@@ -9,17 +9,21 @@ from services.supabase_helpers import upsert_records, _get_client
 
 def _get_table(interval: str) -> str:
     match interval:
-        case "1m":
+        case "1m" | "minutely":
             return "stock_minutely"
-        case "1h":
+        case "1h" | "hourly":
             return "stock_hourly"
-        case "1d":
+        case "1d" | "daily":
             return "stock_daily"
         case _:
             raise ValueError(f"Invalid interval: {interval}")
 
 
+_YF_INTERVAL = {"daily": "1d", "hourly": "1h", "minutely": "1m"}
+
 def fetch_data(ticker: str, interval: str = "1d") -> pd.DataFrame:
+    # Normalize "daily"→"1d" etc. so yfinance and DB helpers both work
+    yf_interval = _YF_INTERVAL.get(interval, interval)
     existing_timestamps = get_existing_timestamps(ticker, interval)
     
     table = _get_table(interval)
@@ -28,12 +32,12 @@ def fetch_data(ticker: str, interval: str = "1d") -> pd.DataFrame:
         last_ts = max(existing_timestamps)
         # Include last_ts as start so the row after it gets a valid log_return
         print(f"[{ticker}] Fetching new data from yfinance starting at {last_ts}...")
-        df = yf.download(ticker, start=last_ts, interval=interval, auto_adjust=False, progress=False)
+        df = yf.download(ticker, start=last_ts, interval=yf_interval, auto_adjust=False, progress=False)
     else:
         default_periods = {"1m": "7d", "1h": "730d", "1d": "1000d"}
-        period = default_periods.get(interval, "1000d")
+        period = default_periods.get(yf_interval, "1000d")
         print(f"[{ticker}] Fetching historical data from yfinance (period: {period})...")
-        df = yf.download(ticker, period=period, interval=interval, auto_adjust=False, progress=False)
+        df = yf.download(ticker, period=period, interval=yf_interval, auto_adjust=False, progress=False)
 
     if df.empty:
         if not existing_timestamps:

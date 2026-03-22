@@ -12,7 +12,7 @@ import logging
 import pandas as pd
 import numpy as np
 from scipy import stats
-from supabase_helpers import (
+from services.supabase_helpers import (
     get_from_supabase,
     get_ta_from_supabase,
     push_regime_columns_to_supabase,
@@ -295,7 +295,7 @@ def compute_regime_params(df: pd.DataFrame, regimes: pd.Series) -> list[dict]:
         nu = 5.0
         try:
             nu_fit = stats.t.fit(sub.to_numpy())[0]
-            if np.isfinite(nu_fit) and nu_fit > 2.1:
+            if np.isfinite(nu_fit) and nu_fit > 3.0:
                 nu = float(nu_fit)
         except Exception:
             pass
@@ -305,15 +305,24 @@ def compute_regime_params(df: pd.DataFrame, regimes: pd.Series) -> list[dict]:
         try:
             from arch import arch_model
 
+            def _safe(val: float, fallback: float) -> float:
+                return val if np.isfinite(val) else fallback
+
             am = arch_model(sub * 100, mean="Zero", vol="Garch", p=1, q=1, rescale=False)
             res = am.fit(disp="off", show_warning=False)
             p = res.params
             # arch was fitted on sub*100 for numerical stability; rescale back to raw-return units.
             # omega and sigma0 are in (100*return)^2 units → divide by 10_000.
-            omega = float(max(p.get("omega", 1e-8), 1e-12)) / 10_000
-            alpha = float(max(p.get("alpha[1]", 0.05), 1e-8))
-            beta = float(max(p.get("beta[1]", 0.9), 1e-8))
-            sigma0 = float(max(res.conditional_volatility.iloc[-1] ** 2, 1e-12)) / 10_000
+            omega = _safe(float(p.get("omega", 1e-8)), 1e-8) / 10_000
+            alpha = _safe(float(p.get("alpha[1]", 0.05)), 0.05)
+            beta  = _safe(float(p.get("beta[1]", 0.9)), 0.9)
+            # GARCH(1,1) stationarity requires alpha + beta < 1.
+            # If the fit produces a non-stationary model, fall back to safe defaults.
+            if alpha + beta >= 1.0:
+                alpha, beta = 0.05, 0.9
+            last_cv = res.conditional_volatility.iloc[-1]
+            sigma0 = _safe(float(last_cv ** 2), sigma ** 2) / 10_000
+            sigma0 = max(sigma0, 1e-12)
         except Exception:
             pass
 

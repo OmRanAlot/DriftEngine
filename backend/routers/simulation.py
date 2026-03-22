@@ -100,8 +100,8 @@ async def simulate(request: SimulationRequest):
         ticker, current_regime, len(regimes),
     )
 
-    S0 = float(work_df["close"].iloc[0])
-    params = build_params(regime_params, transition_matrix, current_regime, S0, horizon_days)
+    S0 = float(work_df["close"].iloc[-1])
+    params = build_params(regime_params, transition_matrix, current_regime, S0, horizon_days, num_paths=request.num_paths)
 
     # ── Step 6: Run C++ Monte Carlo simulation ────────────────────────────────
     logger.info("[%s] Step 6 — running Monte Carlo simulation.", ticker)

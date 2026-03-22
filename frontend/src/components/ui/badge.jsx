@@ -8,9 +8,9 @@ const badgeVariants = cva(
   {
     variants: {
       variant: {
-        // Orange — engine / feature labels
+        // White — engine / feature labels
         default:
-          'bg-[var(--de-orange-dim)] text-[var(--de-orange)] border border-[var(--de-orange)]/20',
+          'bg-white/[0.06] text-white border border-white/15',
         // Muted outline — metadata
         outline:
           'border border-[var(--de-border-2)] text-[var(--de-text-muted)]',

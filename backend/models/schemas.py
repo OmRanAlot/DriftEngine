@@ -14,7 +14,8 @@ from typing import List, Optional, Literal
 class SimulationRequest(BaseModel):
     ticker: str = Field(..., min_length=1, max_length=5, description="Stock ticker symbol")
     horizon_days: int = Field(..., ge=1, le=252, description="Forecast horizon in trading days")
-    interval: Literal["daily", "hourly", "minutely"] = Field(..., description="Interval of the data")
+    interval: Literal["daily", "hourly", "minutely"] = Field("daily", description="Interval of the data")
+    num_paths: int = Field(10_000, ge=1_000, le=500_000, description="Number of Monte Carlo simulation paths")
 
 # ─── Sub-models ────────────────────────────────────────────────────────────
 

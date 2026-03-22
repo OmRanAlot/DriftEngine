@@ -14,11 +14,11 @@ const BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
  *
  * SimulationResult shape — see CLAUDE.md API Contract section.
  */
-export async function simulate(ticker, horizonDays) {
+export async function simulate(ticker, horizonDays, interval = 'daily', numPaths = 10000) {
   const response = await fetch(`${BASE_URL}/simulate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ticker, horizon_days: horizonDays })
+    body: JSON.stringify({ ticker, horizon_days: horizonDays, interval, num_paths: numPaths })
   })
 
   if (!response.ok) {

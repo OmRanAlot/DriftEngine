@@ -69,16 +69,31 @@ def aggregate(
     work_df: pd.DataFrame,
 ) -> dict:
     terminal_prices = np.asarray(raw_output["terminal_prices"], dtype=float)
+    terminal_prices = terminal_prices[np.isfinite(terminal_prices)]
     max_drawdowns = np.asarray(raw_output["max_drawdowns"], dtype=float)
+    max_drawdowns = max_drawdowns[np.isfinite(max_drawdowns)]
+    if terminal_prices.size == 0:
+        raise ValueError("Simulation produced no finite terminal prices — check regime parameters.")
 
     # ── Fan chart ────────────────────────────────────────────────────────────
+    def _clean_series(values: list, fallback: float) -> list[float]:
+        """Forward-fill NaN/inf with the last valid value (or `fallback` for leading gaps).
+        Ensures the schema always receives List[float] with no None entries."""
+        cleaned: list[float] = []
+        last_valid = fallback
+        for v in values:
+            if v is not None and np.isfinite(v):
+                last_valid = float(v)
+            cleaned.append(last_valid)
+        return cleaned
+
     fan_chart = {
         "days": list(range(horizon_days + 1)),
-        "p5":  [float(v) for v in raw_output["p5"]],
-        "p25": [float(v) for v in raw_output["p25"]],
-        "p50": [float(v) for v in raw_output["p50"]],
-        "p75": [float(v) for v in raw_output["p75"]],
-        "p95": [float(v) for v in raw_output["p95"]],
+        "p5":  _clean_series(raw_output["p5"],  S0),
+        "p25": _clean_series(raw_output["p25"], S0),
+        "p50": _clean_series(raw_output["p50"], S0),
+        "p75": _clean_series(raw_output["p75"], S0),
+        "p95": _clean_series(raw_output["p95"], S0),
     }
 
     # ── Terminal distribution ─────────────────────────────────────────────────

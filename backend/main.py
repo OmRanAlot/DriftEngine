@@ -11,8 +11,14 @@
 #
 # TODO: Implement CORS middleware, register routers/simulation.py
 
+import logging
 import os
 import sys
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(name)s %(levelname)s %(message)s",
+)
 
 sys.path.insert(0, os.path.normpath(
     os.path.join(os.path.dirname(__file__), '..', 'simulation', 'build')

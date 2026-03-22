@@ -20,7 +20,7 @@
     --popover:              0 0% 8%;
     --popover-foreground:   30 7% 96%;
 
-    --primary:              22 100% 58%;      /* orange */
+    --primary:              0 0% 100%;        /* white */
     --primary-foreground:   0 0% 4%;
 
     --secondary:            0 0% 11%;
@@ -37,7 +37,7 @@
 
     --border:               0 0% 14%;
     --input:                0 0% 14%;
-    --ring:                 22 100% 58%;
+    --ring:                 0 0% 100%;
 
     --radius: 0.5rem;
 
@@ -51,10 +51,6 @@
     --de-text:         #f5f2f0;
     --de-text-muted:   rgba(245, 242, 240, 0.50);
     --de-text-subtle:  rgba(245, 242, 240, 0.25);
-
-    --de-orange:       #ff6b2b;
-    --de-orange-dim:   rgba(255, 107, 43, 0.10);
-    --de-orange-glow:  rgba(255, 107, 43, 0.22);
 
     --de-green:        #4ade80;
     --de-green-dim:    rgba(74, 222, 128, 0.10);
