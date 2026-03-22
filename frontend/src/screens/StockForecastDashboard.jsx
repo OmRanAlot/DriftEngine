@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, RefreshCw, Download, Loader2 } from 'lucide-react'
 import { simulate } from '@/api'
+import SimulationLoader from '@/components/SimulationLoader'
 
 const REGIME_BADGE_VARIANT = {
   0: 'bullish',
@@ -140,7 +141,10 @@ export default function StockForecastDashboard({ ticker, horizonDays = 60, numPa
     setLoading(true)
     setError(null)
     try {
-      const result = await simulate(ticker, horizonDays, 'daily', numPaths)
+      const [result] = await Promise.all([
+        simulate(ticker, horizonDays, 'daily', numPaths),
+        new Promise(resolve => setTimeout(resolve, 10000)),
+      ])
       setData(result)
     } catch (err) {
       setError(err.message || 'Simulation failed')
@@ -149,30 +153,24 @@ export default function StockForecastDashboard({ ticker, horizonDays = 60, numPa
     }
   }, [ticker, horizonDays, numPaths])
 
+  const handleExport = useCallback(() => {
+    if (!data) return
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${data.ticker ?? ticker}_${horizonDays}d_simulation.json`
+    a.click()
+    URL.revokeObjectURL(url)
+  }, [data, ticker, horizonDays])
+
   useEffect(() => {
     runSimulation()
   }, [runSimulation])
 
   // ─── Loading state ─────────────────────────────────────────────────────────
   if (loading) {
-    return (
-      <div className="relative min-h-screen bg-black text-[var(--de-text)] font-sans flex items-center justify-center">
-        <div aria-hidden className="pointer-events-none fixed inset-0 z-0 de-grid-bg opacity-30" />
-        <div aria-hidden className="pointer-events-none fixed inset-0 z-0 bg-gradient-to-b from-black via-transparent to-black" />
-        <div className="relative z-10 flex flex-col items-center gap-6">
-          <Loader2 className="h-10 w-10 animate-spin text-white" />
-          <div className="text-center">
-            <p className="text-lg font-semibold text-white">Running simulation</p>
-            <p className="mt-1 text-sm text-white/40">
-              {numPaths.toLocaleString()} Monte Carlo paths for {ticker} &middot; T+{horizonDays}
-            </p>
-            <p className="mt-3 font-mono text-[10px] uppercase tracking-widest text-white/20">
-              Fetching data &middot; Computing regimes &middot; GARCH fitting &middot; C++ engine
-            </p>
-          </div>
-        </div>
-      </div>
-    )
+    return <SimulationLoader numPaths={numPaths} ticker={ticker} />
   }
 
   // ─── Error state ───────────────────────────────────────────────────────────
@@ -307,7 +305,7 @@ export default function StockForecastDashboard({ ticker, horizonDays = 60, numPa
           </div>
 
           <div className="flex items-center gap-3">
-            <Button variant="outline" size="sm" className="border-white/10 bg-transparent text-white/60 hover:bg-white/5 hover:text-white">
+            <Button variant="outline" size="sm" onClick={handleExport} disabled={!data} className="border-white/10 bg-transparent text-white/60 hover:bg-white/5 hover:text-white disabled:opacity-30">
               <Download className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Export</span>
             </Button>

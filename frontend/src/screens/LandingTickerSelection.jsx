@@ -330,7 +330,7 @@ export default function LandingTickerSelection({ onTickerSelect }) {
         {/* Links */}
         <nav className="flex items-center gap-6 text-xs font-medium text-white/50">
           <a href="#" target="_blank" className="transition-colors hover:text-white">Methodology</a>
-          <a href="#" target="_blank" className="transition-colors hover:text-white">GitHub</a>
+          <a href="https://github.com/OmRanAlot/DriftEngine" target="_blank" className="transition-colors hover:text-white">GitHub</a>
         </nav>
       </footer>
     </div>
