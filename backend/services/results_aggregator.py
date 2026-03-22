@@ -45,6 +45,7 @@
 
 import numpy as np
 from scipy import stats
+import pandas as pd
 
 REGIME_NAMES = ["Low-Vol Bull", "High-Vol Bull", "High-Vol Bear", "Sideways"]
 REGIME_DESCRIPTIONS = [
@@ -53,3 +54,91 @@ REGIME_DESCRIPTIONS = [
     "Market is selling off with panic — high volatility, negative drift, jump risk.",
     "Market is going sideways, waiting for a catalyst — near-zero drift, moderate vol."
 ]
+
+_INDICATOR_COLS = ["rsi", "macd_hist", "bb_width", "hvr", "sma_spread", "atr"]
+
+
+def aggregate(
+    raw_output: dict,
+    S0: float,
+    horizon_days: int,
+    current_regime_id: int,
+    regime_params: list[dict],
+    transition_matrix: list[list[float]],
+    ticker: str,
+    work_df: pd.DataFrame,
+) -> dict:
+    terminal_prices = np.asarray(raw_output["terminal_prices"], dtype=float)
+    max_drawdowns = np.asarray(raw_output["max_drawdowns"], dtype=float)
+
+    # ── Fan chart ────────────────────────────────────────────────────────────
+    fan_chart = {
+        "days": list(range(horizon_days + 1)),
+        "p5":  [float(v) for v in raw_output["p5"]],
+        "p25": [float(v) for v in raw_output["p25"]],
+        "p50": [float(v) for v in raw_output["p50"]],
+        "p75": [float(v) for v in raw_output["p75"]],
+        "p95": [float(v) for v in raw_output["p95"]],
+    }
+
+    # ── Terminal distribution ─────────────────────────────────────────────────
+    counts, bin_edges = np.histogram(terminal_prices, bins=50, density=True)
+    bin_centers = 0.5 * (bin_edges[:-1] + bin_edges[1:])
+    bin_width = bin_edges[1] - bin_edges[0]
+    probabilities = counts * bin_width  # normalize so values sum to ~1
+    terminal_distribution = {
+        "prices": [float(v) for v in bin_centers],
+        "probabilities": [float(v) for v in probabilities],
+    }
+
+    # ── Risk metrics ──────────────────────────────────────────────────────────
+    terminal_returns = (terminal_prices - S0) / S0
+    var_95 = float(np.percentile(terminal_returns, 5))
+    var_99 = float(np.percentile(terminal_returns, 1))
+    below_var95 = terminal_returns[terminal_returns <= var_95]
+    cvar_95 = float(below_var95.mean()) if len(below_var95) > 0 else var_95
+    prob_positive = float(np.mean(terminal_prices > S0))
+    max_drawdown_median = float(np.median(max_drawdowns))
+    risk_metrics = {
+        "var_95": var_95,
+        "var_99": var_99,
+        "cvar_95": cvar_95,
+        "prob_positive": prob_positive,
+        "max_drawdown_median": max_drawdown_median,
+    }
+
+    # ── Current regime ────────────────────────────────────────────────────────
+    latest = work_df.iloc[0]
+    indicators = {
+        col: float(latest[col])
+        for col in _INDICATOR_COLS
+        if col in work_df.columns and pd.notna(latest[col])
+    }
+    current_regime = {
+        "id": current_regime_id + 1,
+        "name": REGIME_NAMES[current_regime_id],
+        "description": REGIME_DESCRIPTIONS[current_regime_id],
+        "indicators": indicators,
+    }
+
+    # ── Regime stats ──────────────────────────────────────────────────────────
+    regime_stats = {
+        REGIME_NAMES[i]: {
+            "mu": regime_params[i].get("mu", 0.0),
+            "sigma": regime_params[i].get("sigma", 0.0),
+            "n_days": regime_params[i].get("n_days", 0),
+        }
+        for i in range(len(regime_params))
+    }
+
+    return {
+        "ticker": ticker,
+        "current_price": float(S0),
+        "horizon_days": horizon_days,
+        "current_regime": current_regime,
+        "fan_chart": fan_chart,
+        "terminal_distribution": terminal_distribution,
+        "risk_metrics": risk_metrics,
+        "transition_matrix": transition_matrix,
+        "regime_stats": regime_stats,
+    }

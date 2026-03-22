@@ -308,10 +308,12 @@ def compute_regime_params(df: pd.DataFrame, regimes: pd.Series) -> list[dict]:
             am = arch_model(sub * 100, mean="Zero", vol="Garch", p=1, q=1, rescale=False)
             res = am.fit(disp="off", show_warning=False)
             p = res.params
-            omega = float(max(p.get("omega", 1e-8), 1e-12))
+            # arch was fitted on sub*100 for numerical stability; rescale back to raw-return units.
+            # omega and sigma0 are in (100*return)^2 units → divide by 10_000.
+            omega = float(max(p.get("omega", 1e-8), 1e-12)) / 10_000
             alpha = float(max(p.get("alpha[1]", 0.05), 1e-8))
             beta = float(max(p.get("beta[1]", 0.9), 1e-8))
-            sigma0 = float(max(res.conditional_volatility.iloc[-1] ** 2, 1e-12))
+            sigma0 = float(max(res.conditional_volatility.iloc[-1] ** 2, 1e-12)) / 10_000
         except Exception:
             pass
 

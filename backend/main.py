@@ -11,6 +11,16 @@
 #
 # TODO: Implement CORS middleware, register routers/simulation.py
 
+import os
+import sys
+
+sys.path.insert(0, os.path.normpath(
+    os.path.join(os.path.dirname(__file__), '..', 'simulation', 'build')
+))
+
+# MinGW runtime DLLs are required for the pybind11 module (built with GCC).
+os.add_dll_directory("C:/mingw64/bin")
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routers import simulation

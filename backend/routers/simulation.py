@@ -11,12 +11,13 @@
 #   4. regime_classifier.classify_and_prepare(merged, ticker, …)
 #        → cache read from Supabase → recompute + push if cache miss
 #   5. build_transition_matrix, get_current_regime, compute_regime_params
-#   6. parameter_builder.build_params → SimulationParams (TODO)
+#   6. parameter_builder.build_params → SimulationParams 
 #   7. C++ simulation engine via pybind11 (TODO)
 #   8. results_aggregator.aggregate → SimulationResult (TODO)
 
 import logging
 
+import drift_engine_sim  # type: ignore[import]
 from fastapi import APIRouter, HTTPException
 
 from models.schemas import SimulationRequest, SimulationResult
@@ -29,6 +30,7 @@ from services.regime_classifier import (
     get_current_regime,
 )
 from services.parameter_builder import build_params
+from services.results_aggregator import aggregate
 
 logger = logging.getLogger(__name__)
 
@@ -98,14 +100,19 @@ async def simulate(request: SimulationRequest):
         ticker, current_regime, len(regimes),
     )
 
-    params = build_params(regime_params, transition_matrix, current_regime, work_df["close"].iloc[0], horizon_days)
+    S0 = float(work_df["close"].iloc[0])
+    params = build_params(regime_params, transition_matrix, current_regime, S0, horizon_days)
 
-    # ── Steps 6–8: Monte Carlo simulation (not yet implemented) ──────────────
-    # TODO: call parameter_builder.build_params() → C++ engine → results_aggregator.aggregate()
-    raise HTTPException(
-        status_code=501,
-        detail=(
-            "Regime columns have been updated in Supabase. "
-            "Monte Carlo simulation (steps 6–8) is not yet implemented."
-        ),
+    # ── Step 6: Run C++ Monte Carlo simulation ────────────────────────────────
+    logger.info("[%s] Step 6 — running Monte Carlo simulation.", ticker)
+    try:
+        raw_output = drift_engine_sim.run_simulation(params)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Simulation engine failed: {exc}")
+
+    # ── Steps 7–8: Aggregate results ──────────────────────────────────────────
+    logger.info("[%s] Steps 7–8 — aggregating results.", ticker)
+    return aggregate(
+        raw_output, S0, horizon_days, current_regime,
+        regime_params, transition_matrix, ticker, work_df,
     )
