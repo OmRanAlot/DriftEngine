@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import LandingTickerSelection from './screens/LandingTickerSelection';
 import StockForecastDashboard from './screens/StockForecastDashboard';
 import MethodologyScreen from './screens/MethodologyScreen';
+import { log } from '@/lib/logger';
 
 function App() {
   const [currentScreen, setCurrentScreen] = useState('landing');
@@ -9,11 +10,19 @@ function App() {
   const [horizonDays, setHorizonDays] = useState(60);
   const [numPaths, setNumPaths] = useState(10000);
 
+  useEffect(() => { log.boot() }, [])
+
+  const navigate = (to, meta = {}) => {
+    log.screenTransition(currentScreen, to, meta)
+    setCurrentScreen(to)
+  }
+
   const handleTickerSelect = (ticker, horizon, paths) => {
+    log.tickerSelected(ticker, horizon ?? horizonDays, paths ?? numPaths)
     setSelectedTicker(ticker);
     if (horizon) setHorizonDays(horizon);
     if (paths) setNumPaths(paths);
-    setCurrentScreen('dashboard');
+    navigate('dashboard', { ticker, horizon_days: horizon ?? horizonDays, num_paths: paths ?? numPaths });
   };
 
   return (
@@ -29,12 +38,12 @@ function App() {
           ticker={selectedTicker}
           horizonDays={horizonDays}
           numPaths={numPaths}
-          onBack={() => setCurrentScreen('landing')}
-          onMethodology={() => setCurrentScreen('methodology')}
+          onBack={() => navigate('landing')}
+          onMethodology={() => navigate('methodology')}
         />
       )}
       {currentScreen === 'methodology' && (
-        <MethodologyScreen onBack={() => setCurrentScreen(selectedTicker ? 'dashboard' : 'landing')} />
+        <MethodologyScreen onBack={() => navigate(selectedTicker ? 'dashboard' : 'landing')} />
       )}
     </div>
   );

@@ -6,6 +6,7 @@ import { ArrowLeft, RefreshCw, Download, Loader2 } from 'lucide-react'
 import { simulate } from '@/api'
 import SimulationLoader from '@/components/SimulationLoader'
 import FanChartCanvas from '@/components/FanChartCanvas'
+import { log } from '@/lib/logger'
 
 const REGIME_BADGE_VARIANT = {
   0: 'bullish',
@@ -79,13 +80,16 @@ export default function StockForecastDashboard({ ticker, horizonDays = 60, numPa
   const runSimulation = useCallback(async () => {
     setLoading(true)
     setError(null)
+    log.simulationStart(ticker, horizonDays, numPaths)
     try {
       const [result] = await Promise.all([
         simulate(ticker, horizonDays, 'daily', numPaths),
         new Promise(resolve => setTimeout(resolve, 10000)),
       ])
+      log.simulationComplete(result)
       setData(result)
     } catch (err) {
+      log.simulationError(err)
       setError(err.message || 'Simulation failed')
     } finally {
       setLoading(false)
@@ -94,7 +98,9 @@ export default function StockForecastDashboard({ ticker, horizonDays = 60, numPa
 
   const handleExport = useCallback(() => {
     if (!data) return
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const json = JSON.stringify(data, null, 2)
+    log.exportTriggered(data.ticker ?? ticker, horizonDays, json.length)
+    const blob = new Blob([json], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url

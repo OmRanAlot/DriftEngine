@@ -3,6 +3,8 @@
 // Base URL: proxied through Vite dev server to http://localhost:8000
 // In production, set VITE_API_BASE_URL env variable.
 
+import { log } from '@/lib/logger'
+
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
 
 /**
@@ -15,16 +17,27 @@ const BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
  * SimulationResult shape — see CLAUDE.md API Contract section.
  */
 export async function simulate(ticker, horizonDays, interval = 'daily', numPaths = 10000) {
-  const response = await fetch(`${BASE_URL}/simulate`, {
+  const endpoint = `${BASE_URL}/simulate`
+  const payload = { ticker, horizon_days: horizonDays, interval, num_paths: numPaths }
+  log.apiRequest(endpoint, payload)
+
+  const t0 = performance.now()
+  const response = await fetch(endpoint, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ticker, horizon_days: horizonDays, interval, num_paths: numPaths })
+    body: JSON.stringify(payload)
   })
 
   if (!response.ok) {
     const err = await response.json().catch(() => ({}))
-    throw new Error(err.detail || `Request failed: ${response.status}`)
+    const elapsed = Math.round(performance.now() - t0)
+    const error = new Error(err.detail || `Request failed: ${response.status}`)
+    log.apiError(endpoint, error, elapsed)
+    throw error
   }
 
-  return response.json()
+  const data = await response.json()
+  const elapsed = Math.round(performance.now() - t0)
+  log.apiResponse(endpoint, data, elapsed)
+  return data
 }
