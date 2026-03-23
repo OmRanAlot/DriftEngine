@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { ArrowLeft, RefreshCw, Download, Loader2 } from 'lucide-react'
 import { simulate } from '@/api'
 import SimulationLoader from '@/components/SimulationLoader'
+import FanChartCanvas from '@/components/FanChartCanvas'
 
 const REGIME_BADGE_VARIANT = {
   0: 'bullish',
@@ -33,33 +34,6 @@ function fmtPct(n) {
 function fmtDollar(n) {
   if (n == null || isNaN(n)) return '—'
   return `$${Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-}
-
-// Build SVG path string from a percentile array mapped to viewBox coordinates
-function toSvgPath(values, viewW, viewH, minY, maxY) {
-  if (!values || values.length === 0) return ''
-  const n = values.length
-  return values.map((v, i) => {
-    const x = (i / (n - 1)) * viewW
-    const y = viewH - ((v - minY) / (maxY - minY)) * viewH
-    return `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`
-  }).join(' ')
-}
-
-function toSvgArea(upper, lower, viewW, viewH, minY, maxY) {
-  if (!upper || !lower || upper.length === 0) return ''
-  const n = upper.length
-  const topPoints = upper.map((v, i) => {
-    const x = (i / (n - 1)) * viewW
-    const y = viewH - ((v - minY) / (maxY - minY)) * viewH
-    return `${x.toFixed(1)},${y.toFixed(1)}`
-  })
-  const bottomPoints = [...lower].reverse().map((v, i) => {
-    const x = ((n - 1 - i) / (n - 1)) * viewW
-    const y = viewH - ((v - minY) / (maxY - minY)) * viewH
-    return `${x.toFixed(1)},${y.toFixed(1)}`
-  })
-  return `M${topPoints.join(' L')} L${bottomPoints.join(' L')} Z`
 }
 
 // ─── InfoTooltip ─────────────────────────────────────────────────────────────
@@ -96,43 +70,8 @@ function InfoTooltip({ text, side = 'top' }) {
   )
 }
 
-const REGIME_STRIP_COLORS = ['#4ade80', '#fb923c', '#f87171', '#94a3b8']
-const REGIME_SHORT_LABELS = ['LV Bull', 'HV Bull', 'HV Bear', 'Sideways']
-
-// Walk transition matrix forward; return dominant regime index for each day 0..numDays
-function computeRegimePath(startId, transMatrix, numDays) {
-  let p = [0, 0, 0, 0]
-  p[startId] = 1.0
-  const path = [startId]
-  for (let d = 1; d <= numDays; d++) {
-    const next = [0, 0, 0, 0]
-    for (let j = 0; j < 4; j++)
-      for (let i = 0; i < 4; i++)
-        next[j] += p[i] * (transMatrix[i]?.[j] ?? 0)
-    p = next
-    path.push(p.indexOf(Math.max(...p)))
-  }
-  return path
-}
-
-// Collapse path into contiguous segments [{startFrac, endFrac, regime}]
-function regimeSegments(path) {
-  const segs = []
-  const n = path.length - 1
-  if (n <= 0) return segs
-  let segStart = 0
-  for (let d = 1; d <= n; d++) {
-    if (path[d] !== path[segStart]) {
-      segs.push({ startFrac: segStart / n, endFrac: d / n, regime: path[segStart] })
-      segStart = d
-    }
-  }
-  segs.push({ startFrac: segStart / n, endFrac: 1, regime: path[segStart] })
-  return segs
-}
-
 // ─── Component ───────────────────────────────────────────────────────────────
-export default function StockForecastDashboard({ ticker, horizonDays = 60, numPaths = 10000, onBack }) {
+export default function StockForecastDashboard({ ticker, horizonDays = 60, numPaths = 10000, onBack, onMethodology }) {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -209,32 +148,12 @@ export default function StockForecastDashboard({ ticker, horizonDays = 60, numPa
     risk_metrics: risk,
     transition_matrix: transMatrix,
     regime_stats: regimeStats,
+    paths,
   } = data
 
   const medianTerminal = fanChart.p50[fanChart.p50.length - 1]
   const medianReturn = ((medianTerminal - currentPrice) / currentPrice)
   const regimeId = regime.id - 1 // 0-indexed internally
-
-  // Regime path along forecast horizon
-  const regimePath = computeRegimePath(regimeId, transMatrix, horizonDays)
-  const regSegs = regimeSegments(regimePath)
-
-  // Fan chart SVG bounds
-  const allPrices = [...fanChart.p5, ...fanChart.p95]
-  const minPrice = Math.min(...allPrices) * 0.98
-  const maxPrice = Math.max(...allPrices) * 1.02
-  const viewW = 1000
-  const viewH = 100
-
-  // Y-axis labels
-  const priceRange = maxPrice - minPrice
-  const yLabels = [maxPrice, maxPrice - priceRange / 3, maxPrice - 2 * priceRange / 3, minPrice].map(v => fmtDollar(v))
-
-  // X-axis labels + regime at each tick
-  const steps = fanChart.days.length - 1
-  const xTickDays = [0, Math.round(steps / 4), Math.round(steps / 2), Math.round(3 * steps / 4), steps]
-  const xLabels = ['TODAY', `T+${xTickDays[1]}`, `T+${xTickDays[2]}`, `T+${xTickDays[3]}`, `T+${steps}`]
-  const xTickRegimes = xTickDays.map(d => regimePath[Math.min(d, regimePath.length - 1)])
 
   // Stat cards
   const STAT_CARDS = [
@@ -368,96 +287,18 @@ export default function StockForecastDashboard({ ticker, horizonDays = 60, numPa
         </div>
 
         {/* ── Fan chart ───────────────────────────────────────────────────── */}
-        <Card className="de-fade-in overflow-hidden border-white/[0.06] bg-white/[0.02]" style={{ animationDelay: '0.15s' }}>
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-white/80">{horizonDays}-Day Price Projection</CardTitle>
-              <div className="flex items-center gap-5 font-mono text-[10px] uppercase tracking-wider text-white/30">
-                <div className="flex items-center gap-1.5">
-                  <span className="inline-block h-[2px] w-6 bg-white" />
-                  Median
-                  <InfoTooltip side="bottom" text="The middle of all simulated paths. At every point in time, half the simulations are above this line and half below." />
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="inline-block h-3 w-3 rounded-sm border border-purple-500/40 bg-purple-500/30" />
-                  50% CI
-                  <InfoTooltip side="bottom" text="Confidence Interval — the purple zone where the middle 50% of all paths traveled. Any path inside here is a typical outcome." />
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="inline-block h-3 w-3 rounded-sm border border-indigo-500/30 bg-indigo-500/15" />
-                  90% CI
-                  <InfoTooltip side="bottom" text="The wider blue zone covering 90% of all paths. Only the most extreme 10% of simulations went outside this band." />
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <svg width="24" height="4" className="overflow-visible">
-                    <line x1="0" y1="2" x2="24" y2="2" stroke="rgba(74,222,128,0.75)" strokeWidth="1.5" strokeDasharray="4 2" />
-                  </svg>
-                  Max
-                  <InfoTooltip side="bottom" text="The 95th percentile boundary — only 5% of simulated paths went above this green line at any given point." />
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <svg width="24" height="4" className="overflow-visible">
-                    <line x1="0" y1="2" x2="24" y2="2" stroke="rgba(248,113,113,0.75)" strokeWidth="1.5" strokeDasharray="4 2" />
-                  </svg>
-                  Min
-                  <InfoTooltip side="bottom" text="The 5th percentile boundary — only 5% of simulated paths went below this red line at any given point." />
-                </div>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="relative h-72">
-              {/* Y-axis labels */}
-              <div className="absolute bottom-10 left-0 top-0 flex w-14 flex-col justify-between pr-2 text-right font-mono text-[10px] text-white/25">
-                {yLabels.map((l, i) => <span key={i}>{l}</span>)}
-              </div>
-
-              {/* Chart SVG area */}
-              <div className="absolute bottom-10 left-14 right-0 top-0 border-b border-l border-white/[0.06]">
-                <div className="absolute top-0 w-full border-t border-white/[0.04]" />
-                <div className="absolute top-1/3 w-full border-t border-white/[0.04]" />
-                <div className="absolute top-2/3 w-full border-t border-white/[0.04]" />
-                <svg className="de-draw-in h-full w-full" preserveAspectRatio="none" viewBox={`0 0 ${viewW} ${viewH}`}>
-                  <path className="fan-90" d={toSvgArea(fanChart.p95, fanChart.p5, viewW, viewH, minPrice, maxPrice)} />
-                  <path className="fan-50" d={toSvgArea(fanChart.p75, fanChart.p25, viewW, viewH, minPrice, maxPrice)} />
-                  <path className="fan-p95" d={toSvgPath(fanChart.p95, viewW, viewH, minPrice, maxPrice)} />
-                  <path className="fan-p5"  d={toSvgPath(fanChart.p5,  viewW, viewH, minPrice, maxPrice)} />
-                  <path className="fan-median" d={toSvgPath(fanChart.p50, viewW, viewH, minPrice, maxPrice)} />
-                  <circle cx="0" cy={viewH - ((currentPrice - minPrice) / (maxPrice - minPrice)) * viewH} r="4" fill="var(--de-text)" />
-                  <circle cx={viewW} cy={viewH - ((medianTerminal - minPrice) / (maxPrice - minPrice)) * viewH} r="4" fill="#ffffff" />
-                </svg>
-              </div>
-
-              {/* Regime strip */}
-              <div className="absolute bottom-[24px] left-14 right-0 flex h-[10px] overflow-hidden rounded-sm">
-                {regSegs.map((seg, i) => (
-                  <div
-                    key={i}
-                    title={REGIME_SHORT_LABELS[seg.regime]}
-                    style={{
-                      width: `${(seg.endFrac - seg.startFrac) * 100}%`,
-                      background: REGIME_STRIP_COLORS[seg.regime],
-                      opacity: 0.45,
-                    }}
-                  />
-                ))}
-              </div>
-
-              {/* X-axis labels with regime dots */}
-              <div className="absolute bottom-0 left-14 right-0 flex h-6 items-center justify-between px-1">
-                {xLabels.map((l, i) => (
-                  <div key={i} className="flex flex-col items-center gap-0.5">
-                    <span
-                      className="inline-block h-1.5 w-1.5 rounded-full"
-                      style={{ background: REGIME_STRIP_COLORS[xTickRegimes[i]], opacity: 0.85 }}
-                    />
-                    <span className="font-mono text-[9px] text-white/25">{l}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="de-fade-in" style={{ animationDelay: '0.15s' }}>
+          <FanChartCanvas
+            data={fanChart}
+            paths={paths}
+            currentPrice={currentPrice}
+            ticker={ticker}
+            horizonDays={horizonDays}
+            numPaths={numPaths}
+            regime={regime}
+            transitionMatrix={transMatrix}
+          />
+        </div>
 
         {/* ── Stat cards row ──────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
@@ -689,9 +530,16 @@ export default function StockForecastDashboard({ ticker, horizonDays = 60, numPa
               Monte Carlo GARCH(1,1) &middot; {numPaths.toLocaleString()} Paths
             </span>
           </div>
-          <p className="font-mono text-[10px] uppercase tracking-widest text-white/25">
-            Probabilistic scenario tool — not a price predictor &middot; Not financial advice
-          </p>
+          <div className="flex items-center gap-6">
+            {onMethodology && (
+              <button onClick={onMethodology} className="font-mono text-[10px] uppercase tracking-widest text-white/25 hover:text-white/60 transition-colors bg-transparent border-none cursor-pointer p-0">
+                Methodology
+              </button>
+            )}
+            <p className="font-mono text-[10px] uppercase tracking-widest text-white/25">
+              Probabilistic scenario tool — not a price predictor &middot; Not financial advice
+            </p>
+          </div>
         </footer>
       </main>
     </div>

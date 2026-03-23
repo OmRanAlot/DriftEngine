@@ -24,8 +24,9 @@ sys.path.insert(0, os.path.normpath(
     os.path.join(os.path.dirname(__file__), '..', 'simulation', 'build')
 ))
 
-# MinGW runtime DLLs are required for the pybind11 module (built with GCC).
-os.add_dll_directory("C:/mingw64/bin")
+# MinGW runtime DLLs are required for the pybind11 module on Windows (built with GCC).
+if sys.platform == "win32" and hasattr(os, "add_dll_directory"):
+    os.add_dll_directory("C:/mingw64/bin")
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -38,9 +39,13 @@ app = FastAPI(
 )
 
 # TODO: Configure allowed origins for CORS
+_default_origins = "http://localhost:5173"
+_raw_origins = os.environ.get("ALLOWED_ORIGINS", _default_origins)
+allowed_origins = [o.strip() for o in _raw_origins.split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

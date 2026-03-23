@@ -1,0 +1,13 @@
+frontend/
+frontend/node_modules/
+backend/.venv/
+backend/__pycache__/
+simulation/build/
+**/__pycache__/
+**/*.pyc
+**/.env
+.git/
+.gitignore
+*.md
+screens_ref/
+everything-claude-code/

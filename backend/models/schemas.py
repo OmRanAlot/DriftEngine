@@ -60,3 +60,4 @@ class SimulationResult(BaseModel):
     risk_metrics: RiskMetrics
     transition_matrix: List[List[float]]  # 4×4
     regime_stats: dict                    # per-regime μ, σ, sample size
+    paths: List[List[float]]              # all simulated paths, each length (horizon_days+1)

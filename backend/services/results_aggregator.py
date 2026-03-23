@@ -75,6 +75,20 @@ def aggregate(
     if terminal_prices.size == 0:
         raise ValueError("Simulation produced no finite terminal prices — check regime parameters.")
 
+    # ── All paths ─────────────────────────────────────────────────────────────
+    # price_matrix is a flattened (num_paths × (num_steps+1)) row-major array.
+    # Reshape and clean, then return all paths to the frontend.
+    raw_matrix = raw_output.get("price_matrix", [])
+    num_steps_1 = horizon_days + 1  # columns per path
+    if raw_matrix and len(raw_matrix) >= num_steps_1:
+        num_paths_total = len(raw_matrix) // num_steps_1
+        matrix = np.asarray(raw_matrix, dtype=float).reshape(num_paths_total, num_steps_1)
+        # Replace non-finite values with S0 so the frontend never receives NaN/Inf
+        matrix = np.where(np.isfinite(matrix), matrix, S0)
+        paths = matrix.tolist()
+    else:
+        paths = []
+
     # ── Fan chart ────────────────────────────────────────────────────────────
     def _clean_series(values: list, fallback: float) -> list[float]:
         """Forward-fill NaN/inf with the last valid value (or `fallback` for leading gaps).
@@ -156,4 +170,5 @@ def aggregate(
         "risk_metrics": risk_metrics,
         "transition_matrix": transition_matrix,
         "regime_stats": regime_stats,
+        "paths": paths,
     }

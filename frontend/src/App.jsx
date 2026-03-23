@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import LandingTickerSelection from './screens/LandingTickerSelection';
 import StockForecastDashboard from './screens/StockForecastDashboard';
+import MethodologyScreen from './screens/MethodologyScreen';
 
 function App() {
   const [currentScreen, setCurrentScreen] = useState('landing');
@@ -18,7 +19,10 @@ function App() {
   return (
     <div className="relative min-h-screen">
       {currentScreen === 'landing' && (
-        <LandingTickerSelection onTickerSelect={handleTickerSelect} />
+        <LandingTickerSelection
+          onTickerSelect={handleTickerSelect}
+          onMethodology={() => setCurrentScreen('methodology')}
+        />
       )}
       {currentScreen === 'dashboard' && (
         <StockForecastDashboard
@@ -26,7 +30,11 @@ function App() {
           horizonDays={horizonDays}
           numPaths={numPaths}
           onBack={() => setCurrentScreen('landing')}
+          onMethodology={() => setCurrentScreen('methodology')}
         />
+      )}
+      {currentScreen === 'methodology' && (
+        <MethodologyScreen onBack={() => setCurrentScreen(selectedTicker ? 'dashboard' : 'landing')} />
       )}
     </div>
   );

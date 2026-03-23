@@ -1,53 +1,58 @@
-import React, { useState, useRef } from 'react'
-import { Badge } from '@/components/ui/badge'
-import { WebGLShader } from "@/components/ui/web-gl-shader"
-import { LiquidButton, GlassFilter } from '@/components/ui/liquid-glass-button'
-import { TickerCombobox } from '@/components/ui/ticker-combobox'
-import { Search } from 'lucide-react'
-import { cn } from "@/lib/utils"
+import React, { useState, useRef } from "react";
+import { Badge } from "@/components/ui/badge";
+import { WebGLShader } from "@/components/ui/web-gl-shader";
+import { LiquidButton, GlassFilter } from "@/components/ui/liquid-glass-button";
+import { TickerCombobox } from "@/components/ui/ticker-combobox";
+import { Search } from "lucide-react";
+import { cn } from "@/lib/utils";
+import MonteCarloChart from "@/components/MonteCarloChart";
 
 // ─── Component ───────────────────────────────────────────────────────────────
 const HORIZON_OPTIONS = [
-  { value: 30, label: '30 days' },
-  { value: 60, label: '60 days' },
-  { value: 90, label: '90 days' },
-  { value: 120, label: '120 days' },
-]
+  { value: 30, label: "30 days" },
+  { value: 60, label: "60 days" },
+  { value: 90, label: "90 days" },
+  { value: 120, label: "120 days" },
+];
 
-const TRIAL_SNAPS = [10_000, 50_000, 100_000, 200_000, 250_000, 500_000]
+const TRIAL_SNAPS = [10_000, 50_000, 100_000, 200_000, 250_000, 500_000];
 
 function estimateTime(numPaths, horizonDays) {
   // ~5s fixed overhead (data fetch + regime fitting) + C++ scales linearly
-  const secs = Math.round(5 + (numPaths / 10000) * (0.8 + horizonDays / 120))
-  if (secs < 60) return `~${secs} sec`
-  const m = Math.floor(secs / 60)
-  const s = secs % 60
-  return s > 0 ? `~${m}m ${s}s` : `~${m} min`
+  const secs = Math.round(5 + (numPaths / 10000) * (0.8 + horizonDays / 120));
+  if (secs < 60) return `~${secs} sec`;
+  const m = Math.floor(secs / 60);
+  const s = secs % 60;
+  return s > 0 ? `~${m}m ${s}s` : `~${m} min`;
 }
 
-export default function LandingTickerSelection({ onTickerSelect }) {
-  const [query, setQuery] = useState('')
-  const [horizon, setHorizon] = useState(60)
-  const [trialIdx, setTrialIdx] = useState(0)
-  const numPaths = TRIAL_SNAPS[trialIdx]
-  const inputRef = useRef(null)
+
+export default function LandingTickerSelection({
+  onTickerSelect,
+  onMethodology,
+}) {
+  const [query, setQuery] = useState("");
+  const [horizon, setHorizon] = useState(60);
+  const [trialIdx, setTrialIdx] = useState(0);
+  const numPaths = TRIAL_SNAPS[trialIdx];
+  const inputRef = useRef(null);
 
   const handleSearch = (e) => {
-    e.preventDefault()
-    if (!query.trim()) return
-    onTickerSelect?.(query.trim().toUpperCase(), horizon, numPaths)
-  }
+    e.preventDefault();
+    if (!query.trim()) return;
+    onTickerSelect?.(query.trim().toUpperCase(), horizon, numPaths);
+  };
 
   const handleSelect = (item) => {
-    setQuery(item.symbol)
-    onTickerSelect?.(item.symbol, horizon, numPaths)
-    inputRef.current?.blur()
-  }
+    setQuery(item.symbol);
+    onTickerSelect?.(item.symbol, horizon, numPaths);
+    inputRef.current?.blur();
+  };
 
   const scrollToFeatures = () => {
-    const element = document.getElementById('features-section');
+    const element = document.getElementById("features-section");
     if (!element) return;
-    
+
     const targetPosition = element.getBoundingClientRect().top + window.scrollY;
     const startPosition = window.scrollY;
     const distance = targetPosition - startPosition;
@@ -55,28 +60,31 @@ export default function LandingTickerSelection({ onTickerSelect }) {
     let start = null;
 
     // Custom cubic bezier: cubic-bezier(0.65, 0, 0.35, 1) - easeInOutCubic
-    const easeInOutCubic = (t) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    const easeInOutCubic = (t) =>
+      t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 
     const step = (timestamp) => {
       if (!start) start = timestamp;
       const progress = timestamp - start;
       const percent = Math.min(progress / duration, 1);
-      
+
       window.scrollTo(0, startPosition + distance * easeInOutCubic(percent));
-      
+
       if (progress < duration) {
         window.requestAnimationFrame(step);
       }
     };
-    
+
     window.requestAnimationFrame(step);
   };
 
   return (
     <div className="relative min-h-screen bg-black text-[var(--de-text)] overflow-x-hidden font-sans flex flex-col">
-
       {/* ── Background: WebGL Shader ────────────────────────────────────── */}
-      <div aria-hidden className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-0 z-0 overflow-hidden"
+      >
         <WebGLShader />
         {/* Subtle overlay to ensure text remains readable */}
         <div className="absolute inset-0 bg-black/40" />
@@ -86,21 +94,22 @@ export default function LandingTickerSelection({ onTickerSelect }) {
 
       {/* ── Hero Content ──────────────────────────────────────────────────── */}
       <main className="relative z-10 mx-auto flex w-full max-w-5xl min-h-screen flex-col items-center justify-center px-6 pb-20 pt-16">
-
-
-
         {/* Headline */}
         <div className="mb-12 max-w-2xl text-center">
           <h1 className="mb-5 font-display text-7xl font-bold leading-none tracking-[-0.04em] text-white md:text-8xl">
             Drift<span className="text-white"></span>
           </h1>
           <p className="mx-auto max-w-md text-base leading-relaxed text-white/70 md:text-lg">
-            The future is a distribution.<br /> Not a number.
+            The future is a distribution.
+            <br /> Not a number.
           </p>
         </div>
 
         {/* ── Search Bar with Liquid Glass Effects ─────────────────────────── */}
-        <form onSubmit={handleSearch} className="group relative w-full max-w-2xl">
+        <form
+          onSubmit={handleSearch}
+          className="group relative w-full max-w-2xl"
+        >
           {/* Liquid Glass Container Layer */}
           <div className="absolute inset-0 z-0 h-full w-full rounded-2xl transition-all shadow-[0_0_6px_rgba(0,0,0,0.03),0_2px_6px_rgba(0,0,0,0.08),inset_3px_3px_0.5px_-3px_rgba(0,0,0,0.9),inset_-3px_-3px_0.5px_-3px_rgba(0,0,0,0.85),inset_1px_1px_1px_-0.5px_rgba(0,0,0,0.6),inset_-1px_-1px_1px_-0.5px_rgba(0,0,0,0.6),inset_0_0_6px_6px_rgba(0,0,0,0.12),inset_0_0_2px_2px_rgba(0,0,0,0.06),0_0_12px_rgba(255,255,255,0.15)] dark:shadow-[0_0_8px_rgba(0,0,0,0.03),0_2px_6px_rgba(0,0,0,0.08),inset_3px_3px_0.5px_-3.5px_rgba(255,255,255,0.09),inset_-3px_-3px_0.5px_-3.5px_rgba(255,255,255,0.85),inset_1px_1px_1px_-0.5px_rgba(255,255,255,0.6),inset_-1px_-1px_1px_-0.5px_rgba(255,255,255,0.6),inset_0_0_6px_6px_rgba(255,255,255,0.12),inset_0_0_2px_2px_rgba(255,255,255,0.06),0_0_12px_rgba(0,0,0,0.15)] border border-white/10 group-focus-within:border-white/30 group-focus-within:shadow-[0_0_20px_rgba(255,255,255,0.1)] duration-300" />
 
@@ -133,10 +142,10 @@ export default function LandingTickerSelection({ onTickerSelect }) {
 
             <button
               type="button"
-              onClick={() => setQuery('')}
+              onClick={() => setQuery("")}
               className={cn(
                 "items-center gap-1 rounded border border-white/10 bg-white/5 px-2 py-1 font-mono text-[10px] text-white/50 transition-opacity hover:text-white hover:bg-white/10",
-                query ? "flex opacity-100" : "hidden opacity-0 sm:flex"
+                query ? "flex opacity-100" : "hidden opacity-0 sm:flex",
               )}
             >
               ESC
@@ -144,12 +153,18 @@ export default function LandingTickerSelection({ onTickerSelect }) {
           </div>
 
           {/* Autocomplete dropdown */}
-          <TickerCombobox value={query} onSelect={handleSelect} inputRef={inputRef} />
+          <TickerCombobox
+            value={query}
+            onSelect={handleSelect}
+            inputRef={inputRef}
+          />
         </form>
 
         {/* Horizon selector */}
         <div className="mt-6 flex items-center gap-2">
-          <span className="font-mono text-[10px] uppercase tracking-widest text-white/30 mr-2">Forecast Horizon</span>
+          <span className="font-mono text-[10px] uppercase tracking-widest text-white/30 mr-2">
+            Forecast Horizon
+          </span>
           {HORIZON_OPTIONS.map((opt) => (
             <button
               key={opt.value}
@@ -159,7 +174,7 @@ export default function LandingTickerSelection({ onTickerSelect }) {
                 "rounded-full px-4 py-1.5 font-mono text-xs transition-all border",
                 horizon === opt.value
                   ? "border-white/30 bg-white/10 text-white"
-                  : "border-white/5 bg-white/[0.02] text-white/30 hover:text-white/60 hover:border-white/10"
+                  : "border-white/5 bg-white/[0.02] text-white/30 hover:text-white/60 hover:border-white/10",
               )}
             >
               {opt.label}
@@ -194,8 +209,9 @@ export default function LandingTickerSelection({ onTickerSelect }) {
             {/* Snap-point labels */}
             <div className="relative mt-1.5 h-4">
               {TRIAL_SNAPS.map((v, i) => {
-                const pct = (i / (TRIAL_SNAPS.length - 1)) * 100
-                const label = v >= 1_000_000 ? `${v/1_000_000}M` : `${v/1000}k`
+                const pct = (i / (TRIAL_SNAPS.length - 1)) * 100;
+                const label =
+                  v >= 1_000_000 ? `${v / 1_000_000}M` : `${v / 1000}k`;
                 return (
                   <button
                     key={v}
@@ -204,22 +220,29 @@ export default function LandingTickerSelection({ onTickerSelect }) {
                     className="absolute -translate-x-1/2 font-mono text-[9px] transition-colors"
                     style={{
                       left: `${pct}%`,
-                      color: trialIdx === i ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.2)',
+                      color:
+                        trialIdx === i
+                          ? "rgba(255,255,255,0.7)"
+                          : "rgba(255,255,255,0.2)",
                     }}
                   >
                     {label}
                   </button>
-                )
+                );
               })}
             </div>
 
             {/* Time estimate */}
             <div className="mt-3 flex items-center gap-2 border-t border-white/[0.06] pt-3">
-              <span className="material-symbols-outlined text-[14px] text-white/30">timer</span>
+              <span className="material-symbols-outlined text-[14px] text-white/30">
+                timer
+              </span>
               <span className="font-mono text-[10px] text-white/30">
                 Estimated run time:
               </span>
-              <span className={`font-mono text-[10px] font-semibold ${numPaths <= 50000 ? 'text-[var(--de-green)]' : numPaths <= 100000 ? 'text-amber-400' : 'text-[var(--de-red)]'}`}>
+              <span
+                className={`font-mono text-[10px] font-semibold ${numPaths <= 50000 ? "text-[var(--de-green)]" : numPaths <= 100000 ? "text-amber-400" : "text-[var(--de-red)]"}`}
+              >
                 {estimateTime(numPaths, horizon)}
               </span>
               {numPaths >= 250000 && (
@@ -237,43 +260,61 @@ export default function LandingTickerSelection({ onTickerSelect }) {
         </div>
 
         <div className="mt-12 flex justify-center">
-          <LiquidButton onClick={scrollToFeatures} className="text-white border border-white/10 rounded-full bg-white/5 backdrop-blur-sm" size={'xl'}>Learn More</LiquidButton>
+          <LiquidButton
+            onClick={scrollToFeatures}
+            className="text-white border border-white/10 rounded-full bg-white/5 backdrop-blur-sm"
+            size={"xl"}
+          >
+            Learn More
+          </LiquidButton>
         </div>
-
       </main>
 
       {/* ── Features Section ──────────────────────────────────────────────── */}
-      <section id="features-section" className="relative z-10 mx-auto w-full max-w-6xl px-6 py-24 md:py-32 flex flex-col gap-24 md:gap-32">
+      <section
+        id="features-section"
+        className="relative z-10 mx-auto w-full max-w-6xl px-6 py-24 md:py-32 flex flex-col gap-24 md:gap-32"
+      >
         {/* Feature 1 */}
         <div className="flex flex-col md:flex-row items-center gap-12 md:gap-20">
           {/* Visual Left */}
-          <div className="flex-1 w-full aspect-[4/3] md:aspect-video rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center backdrop-blur-sm overflow-hidden relative group shadow-2xl">
-            <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-            
-            {/* Abstract visual representation */}
-            <div className="absolute inset-0 flex items-center justify-center gap-4 opacity-50">
-              <div className="w-1 h-32 bg-gradient-to-t from-transparent via-white/40 to-transparent rounded-full animate-pulse" style={{ animationDelay: '0ms' }} />
-              <div className="w-1 h-48 bg-gradient-to-t from-transparent via-white/60 to-transparent rounded-full animate-pulse" style={{ animationDelay: '150ms' }} />
-              <div className="w-1 h-24 bg-gradient-to-t from-transparent via-white/60 to-transparent rounded-full animate-[pulse_2s_ease-in-out_infinite]" style={{ animationDelay: '300ms' }} />
-              <div className="w-1 h-40 bg-gradient-to-t from-transparent via-white/50 to-transparent rounded-full animate-pulse" style={{ animationDelay: '450ms' }} />
-              <div className="w-1 h-28 bg-gradient-to-t from-transparent via-white/30 to-transparent rounded-full animate-pulse" style={{ animationDelay: '600ms' }} />
-            </div>
-
-            <div className="relative z-10 px-6 py-3 rounded-full bg-black/40 border border-white/20 backdrop-blur-md">
-              <span className="text-white/70 font-mono text-sm tracking-wider">Visual Placeholder 1</span>
-            </div>
+          <div className="flex-1 w-full aspect-[4/3] md:aspect-video rounded-3xl border border-white/10 overflow-hidden relative group shadow-2xl">
+            <img
+              src="/assests/stonks.jpg"
+              alt="Stonks"
+              className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+            />
+            {/* dark overlay so it blends with the dark theme */}
+            <div className="absolute inset-0 bg-black/40 group-hover:bg-black/25 transition-colors duration-700" />
+            {/* vignette */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/20" />
           </div>
-          
+
           {/* Text Right */}
           <div className="flex-1 space-y-6 md:space-y-8">
-            <Badge className="bg-white/10 text-white hover:bg-white/20 border-white/10 px-3 py-1 text-xs">Probabilistic Modeling</Badge>
+            <Badge className="bg-white/10 text-white hover:bg-white/20 border-white/10 px-3 py-1 text-xs">
+              Probabilistic Modeling
+            </Badge>
             <h2 className="text-4xl md:text-5xl lg:text-6xl font-display font-bold tracking-tight text-white leading-[1.1]">
               Understand the <br className="hidden md:block" />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-white/50">probabilities.</span>
+              <span
+                style={{
+                  backgroundImage:
+                    "linear-gradient(to right, white, rgba(255,255,255,0.5))",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  backgroundClip: "text",
+                  color: "transparent",
+                }}
+              >
+                probabilities.
+              </span>
             </h2>
             <p className="text-lg text-white/50 leading-relaxed max-w-lg">
-              Drift helps you understand not just what the price might be, but the entire spectrum of possibilities. 
-              Visualize standard deviations and complex probability curves fueled by real-time options data.
+              Drift helps you understand not just what the price might be, but
+              the entire spectrum of possibilities. Visualize standard
+              deviations and complex probability curves fueled by real-time
+              options data.
             </p>
           </div>
         </div>
@@ -281,30 +322,25 @@ export default function LandingTickerSelection({ onTickerSelect }) {
         {/* Feature 2 */}
         <div className="flex flex-col md:flex-row-reverse items-center gap-12 md:gap-20">
           {/* Visual Right */}
-          <div className="flex-1 w-full aspect-[4/3] md:aspect-video rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center backdrop-blur-sm overflow-hidden relative group shadow-2xl">
-            <div className="absolute inset-0 bg-gradient-to-bl from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-
-            {/* Abstract visual representation */}
-            <div className="absolute inset-0 flex items-center justify-center opacity-40 mix-blend-screen">
-              <div className="w-[120%] h-[120%] bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.6)_0%,transparent_50%)] opacity-30 blur-2xl" />
-              <div className="absolute w-64 h-64 border border-white/20 rounded-full animate-[spin_10s_linear_infinite]" />
-              <div className="absolute w-48 h-48 border border-white/20 rounded-full animate-[spin_7s_linear_infinite_reverse]" />
-            </div>
-
-            <div className="relative z-10 px-6 py-3 rounded-full bg-black/40 border border-white/20 backdrop-blur-md">
-              <span className="text-white/70 font-mono text-sm tracking-wider">Visual Placeholder 2</span>
-            </div>
+          <div className="flex-1 w-full rounded-3xl overflow-hidden relative group shadow-2xl">
+            <MonteCarloChart />
+            {/* subtle hover bloom */}
+            <div className="absolute inset-0 bg-gradient-to-bl from-white/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none rounded-3xl" />
           </div>
-          
+
           {/* Text Left */}
           <div className="flex-1 space-y-6 md:space-y-8">
-            <Badge className="bg-white/10 text-white hover:bg-white/20 border-white/10 px-3 py-1 text-xs">Scenario Planning</Badge>
+            <Badge className="bg-white/10 text-white hover:bg-white/20 border-white/10 px-3 py-1 text-xs">
+              Scenario Planning
+            </Badge>
             <h2 className="text-4xl md:text-5xl lg:text-6xl font-display font-bold tracking-tight text-white leading-[1.1]">
               Planning scenarios <br className="hidden md:block" />
               <span className="text-white/70">made visual.</span>
             </h2>
             <p className="text-lg text-white/50 leading-relaxed max-w-lg">
-              Test your hypotheses against the market's implied expectations. See exactly how your trades might perform across different volatility regimes and price action realities.
+              Test your hypotheses against the market's implied expectations.
+              See exactly how your trades might perform across different
+              volatility regimes and price action realities.
             </p>
           </div>
         </div>
@@ -312,27 +348,42 @@ export default function LandingTickerSelection({ onTickerSelect }) {
 
       {/* ── Footer / Bottom Navigation ──────────────────────────────────── */}
       <footer className="relative z-10 w-full px-6 py-6 pb-8 border-t border-white/5 bg-black/20 backdrop-blur-md flex flex-col md:flex-row items-center justify-between gap-6">
-
         {/* Brand & Legal */}
         <div className="flex flex-col md:flex-row items-center gap-4 text-center md:text-left">
           <div className="flex items-center gap-2.5">
             <div className="flex h-7 w-7 items-center justify-center rounded-md bg-white/10">
-              <span className="material-symbols-outlined text-[16px] text-black shrink-0">timeline</span>
+              <span className="material-symbols-outlined text-[16px] text-black shrink-0">
+                timeline
+              </span>
             </div>
-            <span className="text-sm font-semibold tracking-tight text-white">Drift</span>
+            <span className="text-sm font-semibold tracking-tight text-white">
+              Drift
+            </span>
           </div>
           <span className="hidden md:block text-white/20">|</span>
           <p className="font-mono text-[10px] uppercase tracking-widest text-white/40">
-            Probabilistic scenario tool — not a price predictor · Not financial advice · Educational purposes only
+            Probabilistic scenario tool — not a price predictor · Not financial
+            advice · Educational purposes only
           </p>
         </div>
 
         {/* Links */}
         <nav className="flex items-center gap-6 text-xs font-medium text-white/50">
-          <a href="#" target="_blank" className="transition-colors hover:text-white">Methodology</a>
-          <a href="https://github.com/OmRanAlot/DriftEngine" target="_blank" className="transition-colors hover:text-white">GitHub</a>
+          <button
+            onClick={onMethodology}
+            className="transition-colors hover:text-white bg-transparent border-none cursor-pointer p-0"
+          >
+            Methodology
+          </button>
+          <a
+            href="https://github.com/OmRanAlot/DriftEngine"
+            target="_blank"
+            className="transition-colors hover:text-white"
+          >
+            GitHub
+          </a>
         </nav>
       </footer>
     </div>
-  )
+  );
 }
