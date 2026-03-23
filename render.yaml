@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: driftengine-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    # Render free tier sleeps after inactivity — upgrade to paid to avoid cold starts
+    plan: free
+    envVars:
+      - key: ALLOWED_ORIGINS
+        # Replace with your actual Vercel URL after first deploy
+        value: https://driftengine.vercel.app
