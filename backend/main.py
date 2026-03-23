@@ -41,7 +41,7 @@ app = FastAPI(
 # TODO: Configure allowed origins for CORS
 _default_origins = "http://localhost:5173"
 _raw_origins = os.environ.get("ALLOWED_ORIGINS", _default_origins)
-allowed_origins = [o.strip() for o in _raw_origins.split(",") if o.strip()]
+allowed_origins = [o.strip() for o in _raw_origins.split(",") if o.strip()] + ["https://drift-engine.vercel.app"]
 
 app.add_middleware(
     CORSMiddleware,
