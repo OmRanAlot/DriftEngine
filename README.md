@@ -1,6 +1,6 @@
 # DriftEngine
 
-Probabilistic stock scenario generation tool. Enter a ticker and a forecast horizon, and DriftEngine runs **10,000 Monte Carlo simulations** using an enhanced Geometric Brownian Motion model — with regime-switching, GARCH(1,1) volatility, Student-t fat tails, and jump-diffusion — then visualises the full distribution of outcomes.
+Probabilistic stock scenario generation tool. Enter a ticker and a forecast horizon, and DriftEngine runs **10,000 to 500,000 Monte Carlo simulations** using an enhanced Geometric Brownian Motion model — with regime-switching, GARCH(1,1) volatility, Student-t fat tails, and jump-diffusion — then visualises the full distribution of outcomes.
 
 > **This is a probabilistic scenario tool, not a price predictor. _NOT FINANCIAL ADVICE!_**
 
